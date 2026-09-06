@@ -32,6 +32,7 @@ import {
 import { ChevronLeft } from '@wso2/oxygen-ui-icons-react';
 import EnvironmentSelect from './components/EnvironmentSelect';
 import GatewayTypeSelector from './components/GatewayTypeSelector';
+import { validateGatewayName } from './utils/name';
 import type { Environment, Gateway, GatewayInput, GatewayType } from './types';
 
 export type GatewayFormProps = {
@@ -65,7 +66,14 @@ const GatewayForm: FC<GatewayFormProps> = ({
   const [description, setDescription] = useState(gateway?.description ?? '');
   const [environmentId, setEnvironmentId] = useState(gateway?.environmentId ?? '');
 
-  const canSubmit = name.trim().length > 0 && environmentId.length > 0;
+  // The name is only constrained on create, where the backend derives the
+  // gateway's handle from it. It is a plain display name from then on — the
+  // handle is immutable — so an edit must not be blocked by rules that no longer
+  // apply to what it changes.
+  const nameError = isEdit ? undefined : validateGatewayName(name, environmentId);
+
+  const missingRequired = name.trim().length === 0 || environmentId.length === 0;
+  const canSubmit = !missingRequired && !nameError;
 
   const handleSubmit = () => {
     onSubmit({
@@ -108,6 +116,8 @@ const GatewayForm: FC<GatewayFormProps> = ({
                 placeholder="Enter gateway name"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
+                error={Boolean(nameError)}
+                helperText={nameError}
                 autoFocus
               />
             </FormControl>
@@ -145,7 +155,9 @@ const GatewayForm: FC<GatewayFormProps> = ({
           <Button variant="outlined" color="secondary" onClick={onBack}>
             Cancel
           </Button>
-          <Tooltip title={!canSubmit ? 'Fill in the required fields to continue.' : ''}>
+          {/* An invalid name explains itself in the field's helper text, so the
+              tooltip only covers the still-empty case. */}
+          <Tooltip title={missingRequired ? 'Fill in the required fields to continue.' : ''}>
             <span>
               <Button variant="contained" disabled={!canSubmit} onClick={handleSubmit}>
                 {isEdit ? 'Save Changes' : 'Add Gateway'}
