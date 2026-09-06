@@ -77,19 +77,25 @@ export default function AppSidebar({
   // Those render here rather than where the built-in item sits, so a cloud build
   // can move the entry into this cluster — it suppresses the built-in via `hides`.
   const gatewayOverrides = useSlot<AIWorkspacePageOverride>(AI_WORKSPACE_GATEWAYS_SLOT);
+  // The override stands in for the built-in Gateways item, which is gated below
+  // on GATEWAY_READ — so it carries the same gate rather than showing the entry
+  // to someone the built-in one would have hidden it from.
+  const canReadGateways = hasPermission(SCOPES.GATEWAY_READ);
   const extensions = useMemo(
     () =>
       [
         ...sidebarExtensions,
-        ...gatewayOverrides
-          .filter((override) => Boolean(override.label))
-          .map((override) => ({
-            ...override,
-            label: override.label as string,
-            path: override.path ?? 'gateways',
-          })),
+        ...(canReadGateways
+          ? gatewayOverrides
+              .filter((override) => Boolean(override.label))
+              .map((override) => ({
+                ...override,
+                label: override.label as string,
+                path: override.path ?? 'gateways',
+              }))
+          : []),
       ].sort((a, b) => a.order - b.order),
-    [sidebarExtensions, gatewayOverrides]
+    [sidebarExtensions, gatewayOverrides, canReadGateways]
   );
 
   const handleDismissIntro = () => {
