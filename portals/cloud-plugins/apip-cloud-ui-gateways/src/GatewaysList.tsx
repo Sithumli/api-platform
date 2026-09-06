@@ -45,7 +45,6 @@ import {
 } from '@wso2/oxygen-ui';
 import { Edit, Plus, Search, Settings, Trash2 } from '@wso2/oxygen-ui-icons-react';
 import GatewaySettingsDrawer from './components/GatewaySettingsDrawer';
-import { relativeTime } from './utils/time';
 import { gatewayTypeLabel } from './utils/gateway';
 import NoGatewaysImage from './assets/images/NoGW.svg';
 import type { Environment, Gateway } from './types';
@@ -73,6 +72,14 @@ const GatewaysList: FC<GatewaysListProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [settingsGateway, setSettingsGateway] = useState<Gateway | null>(null);
+
+  // Environments are keyed by name, so a gateway that points at an environment
+  // missing from the list (deleted, or not yet loaded) still shows its raw
+  // `environmentId` rather than nothing.
+  const environmentNames = useMemo(
+    () => new Map(environments.map((environment) => [environment.id, environment.name])),
+    [environments]
+  );
 
   const filteredGateways = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -152,7 +159,7 @@ const GatewaysList: FC<GatewaysListProps> = ({
                         <TableCell>Description</TableCell>
                         <TableCell>Type</TableCell>
                         <TableCell>Status</TableCell>
-                        <TableCell>Last Updated</TableCell>
+                        <TableCell>Environment</TableCell>
                         <TableCell align="right">Actions</TableCell>
                       </TableRow>
                     </TableHead>
@@ -211,7 +218,9 @@ const GatewaysList: FC<GatewaysListProps> = ({
                             </TableCell>
                             <TableCell>
                               <Typography variant="body2" color="text.secondary">
-                                {relativeTime(gateway.updatedAt)}
+                                {environmentNames.get(gateway.environmentId) ||
+                                  gateway.environmentId ||
+                                  '—'}
                               </Typography>
                             </TableCell>
                             <TableCell align="right">
